@@ -7,16 +7,37 @@ const multer = require("multer");
 const aws = require("aws-sdk");
 const multerS3 = require("multer-s3");
 
-var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
+const s3 = new aws.S3({
+  accessKeyId: process.env.S3_ACCESS_KEY,
+  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  region: process.env.S3_BUCKET_REGION,
 });
 
-var upload = multer({ storage: storage }).array("file");
+// var storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "public");
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, Date.now() + "-" + file.originalname);
+//   },
+// });
+
+// var upload = multer({ storage: storage }).array("file");
+
+const upload = (bucketName) =>
+  multer({
+    storage: multerS3({
+      s3,
+      bucket: bucketName,
+      metadata: function (req, file, cb) {
+        cb(null, { fieldName: file.fieldname });
+      },
+      key: function (req, file, cb) {
+        cb(null, `shopper-product-image-${Date.now()}.jpeg`);
+      },
+      ContentType: "image/jpeg",
+    }),
+  });
 
 router.get("/", async (req, res) => {
   try {
@@ -126,17 +147,29 @@ router.get("/product_number", (req, res) => {
 });
 
 router.post("/uploadImage", (req, res) => {
-  upload(req, res, (err) => {
-    if (err) {
-      return res.json({ success: false, err });
-    }
+  const uploadSingle = upload("shopper-io-bucket").array("file");
 
-    let image = [];
-    res.req.files.map((item) => {
-      image.push(item.path);
-    });
+  // upload(req, res, (err) => {
+  //   if (err) {
+  //     return res.json({ success: false, err });
+  //   }
 
-    return res.json(image);
+  //   let image = [];
+  //   res.req.files.map((item) => {
+  //     image.push(item.path);
+  //   });
+
+  //   return res.json(image);
+  // });
+
+  uploadSingle(req, res, async (err) => {
+    if (err) return res.json({ success: false, err });
+
+    let images = [];
+    req.files.map(item => {
+      images.push(item.location)
+    })
+    res.status(200).send(images);
   });
 });
 
