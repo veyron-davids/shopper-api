@@ -3,7 +3,7 @@ services:
   backend:
     build: ./
     ports:
-      - '80:80'
+      - '3900:3900'
     volumes:
       - ./:/app
       - /app/node_modules
