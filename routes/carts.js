@@ -29,7 +29,7 @@ router.get("/getCart", auth, (req, res) => {
         return res.status(200).send(cart);
       });
   } catch (err) {
-    res.status(400).json("Error fetching cart");
+    res.status(400).json("Error fetching carts");
   }
 });
 
